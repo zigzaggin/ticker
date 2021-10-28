@@ -49,7 +49,9 @@
                             <v-col>
                               <v-row>
                                 <v-col>
-                                  <span class="percentage green--text">{{ toPercent("+", student) }}% pluses</span>
+                                  <span class="percentage green--text">
+                                    {{ d(toPercent("+", student)) }}% | {{ d(toPercent("+/", student)) }}%
+                                  </span>
                                 </v-col>
                                 <v-col justify="end">
                                   <span>
@@ -62,7 +64,7 @@
                             <v-col>
                               <v-row>
                                 <v-col>
-                                  <span class="percentage red--text">{{ toPercent("-", student) }}% minuses</span>
+                                  <span class="percentage red--text">{{ d(toPercent("-", student)) }}%</span>
                                 </v-col>
                                 <v-col justify="end">
                                   <span>
@@ -160,6 +162,15 @@
             </v-expansion-panel-content>
           </v-expansion-panel>
         </v-expansion-panels>
+        <template v-if="sessions.length > 0">
+          <v-divider class="my-5"/>
+          <v-btn
+              color="error"
+              @click="sessions = []"
+          >
+            Clear Sessions
+          </v-btn>
+        </template>
       </v-container>
     </v-main>
   </v-app>
@@ -167,6 +178,7 @@
 
 <script>
 import format from "date-fns/format";
+import db from "./db/db";
 
 function uuidv4() {
   return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
@@ -181,6 +193,17 @@ export default {
     return {
       open: [0],
       sessions: []
+    }
+  },
+  created() {
+    this.sessions = db.load();
+  },
+  watch: {
+    sessions: {
+      handler() {
+        db.persist(this.sessions || []);
+      },
+      deep: true
     }
   },
   methods: {
@@ -223,6 +246,9 @@ export default {
         return 0;
 
       if (type === "+") {
+        const pluses = (student.pluses || 0);
+        return (pluses / total) * 100
+      } else if (type === "+/") {
         const pluses = (student.pluses || 0) + (student.cues || 0);
         return (pluses / total) * 100
       } else {
@@ -237,6 +263,9 @@ export default {
         return `Student ${student.name}`;
 
       return student.name;
+    },
+    d(f) {
+      return f.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2});
     }
   }
 }
